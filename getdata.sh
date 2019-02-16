@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "=== Acquiring datasets ==="
 echo "---"
 
