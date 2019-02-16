@@ -47,9 +47,21 @@ def _preprocess(shard, train, vocab, save_dir, cutoffs, bin_sizes, bsz, tgt_len,
 class Corpus(object):
   def __init__(self, path, dataset, *args, **kwargs):
     self.dataset = dataset
+    if self.dataset == "generic_dataset":
+      encode_kwargs = dict(
+        add_eos=kwargs.pop('add_eos', False),
+        add_double_eos=kwargs.pop('add_double_eos', False),
+        ordered=True,
+        verbose=True,
+      )
+    print(self.dataset, 'vocab params', kwargs)
     self.vocab = Vocab(*args, **kwargs)
 
     if self.dataset in ["ptb", "wt2", "enwik8", "text8"]:
+      self.vocab.count_file(os.path.join(path, "train.txt"))
+      self.vocab.count_file(os.path.join(path, "valid.txt"))
+      self.vocab.count_file(os.path.join(path, "test.txt"))
+    elif self.dataset == "generic_dataset" and not self.vocab.vocab_file:
       self.vocab.count_file(os.path.join(path, "train.txt"))
       self.vocab.count_file(os.path.join(path, "valid.txt"))
       self.vocab.count_file(os.path.join(path, "test.txt"))
@@ -74,6 +86,13 @@ class Corpus(object):
           os.path.join(path, "valid.txt"), ordered=True)
       self.test  = self.vocab.encode_file(
           os.path.join(path, "test.txt"), ordered=True)
+    elif self.dataset == "generic_dataset":
+      self.train = self.vocab.encode_file(
+          os.path.join(path, "train.txt"), **encode_kwargs)
+      self.valid = self.vocab.encode_file(
+          os.path.join(path, "valid.txt"), **encode_kwargs)
+      self.test  = self.vocab.encode_file(
+          os.path.join(path, "test.txt"), **encode_kwargs)
     elif self.dataset in ["enwik8", "text8"]:
       self.train = self.vocab.encode_file(
           os.path.join(path, "train.txt"), ordered=True, add_eos=False)
@@ -92,6 +111,9 @@ class Corpus(object):
 
     if self.dataset == "wt103":
       self.cutoffs = [0, 20000, 40000, 200000] + [len(self.vocab)]
+    elif self.dataset == "generic_dataset":
+      with open(os.path.join(path, "cutoffs.json")) as f:
+        self.cutoffs = json.load(f)
     elif self.dataset == "lm1b":
       self.cutoffs = [0, 60000, 100000, 640000] + [len(self.vocab)]
     else:
@@ -114,7 +136,7 @@ class Corpus(object):
 
     record_info_path = os.path.join(save_dir, record_name)
 
-    if self.dataset in ["ptb", "wt2", "wt103", "enwik8", "text8"]:
+    if self.dataset in ["ptb", "wt2", "wt103", "enwik8", "text8", "generic_dataset"]:
       data = getattr(self, split)
       bin_sizes = get_bin_sizes(
           data, bsz // num_core_per_host, tgt_len, self.cutoffs)
@@ -349,6 +371,9 @@ def get_lm_corpus(data_dir, dataset):
     if dataset in ["wt103", "wt2"]:
       kwargs["special"] = ["<eos>"]
       kwargs["lower_case"] = False
+    elif dataset == "generic_dataset":
+      with open(os.path.join(data_dir, 'vocab-params.json')) as f:
+        kwargs = json.load(f)
     elif dataset == "ptb":
       kwargs["special"] = ["<eos>"]
       kwargs["lower_case"] = True
@@ -557,7 +582,7 @@ if __name__ == "__main__":
   flags.DEFINE_string("data_dir", None,
         help="Location of the data corpus")
   flags.DEFINE_enum("dataset", "wt103",
-        ["ptb", "wt2", "wt103", "lm1b", "enwik8", "text8"],
+        ["ptb", "wt2", "wt103", "lm1b", "enwik8", "text8", "generic_dataset"],
         help="Dataset name.")
   flags.DEFINE_integer("per_host_train_bsz", 60,
         help="train batch size each host")

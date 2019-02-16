@@ -45,16 +45,12 @@ class Vocab(object):
     if verbose: print('counting file {} ...'.format(path))
     assert exists(path)
 
-    sents = []
     with open(path, 'r') as f:
       for idx, line in enumerate(f):
         if verbose and idx > 0 and idx % 500000 == 0:
           print('  line {}'.format(idx))
         symbols = self.tokenize(line, add_eos=add_eos)
         self.counter.update(symbols)
-        sents.append(symbols)
-
-    return sents
 
   def count_sents(self, sents, verbose=False):
     """
