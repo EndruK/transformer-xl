@@ -2,8 +2,9 @@
 import argparse
 import time
 import math
-import os, sys
+import os
 import itertools
+import json
 
 import numpy as np
 
@@ -16,11 +17,12 @@ from mem_transformer import MemTransformerLM
 from utils.exp_utils import create_exp_dir
 from utils.data_parallel import BalancedDataParallel
 
+
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
                     help='location of the data corpus')
 parser.add_argument('--dataset', type=str, default='wt103',
-                    choices=['wt103', 'lm1b', 'enwik8', 'text8'],
+                    choices=['wt103', 'lm1b', 'enwik8', 'text8', 'generic_dataset'],
                     help='dataset name')
 parser.add_argument('--n_layer', type=int, default=12,
                     help='number of total layers')
@@ -196,13 +198,17 @@ te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
 # adaptive softmax / embedding
 cutoffs, tie_projs = [], [False]
 if args.adaptive:
-    assert args.dataset in ['wt103', 'lm1b']
+    assert args.dataset in ['wt103', 'lm1b', 'generic_dataset']
     if args.dataset == 'wt103':
         cutoffs = [20000, 40000, 200000]
         tie_projs += [True] * len(cutoffs)
     elif args.dataset == 'lm1b':
         cutoffs = [60000, 100000, 640000]
         tie_projs += [False] * len(cutoffs)
+    elif args.dataset == 'generic_dataset':
+        with open(os.path.join(args.data, "cutoffs.json")) as f:
+            cutoffs = json.load(f)
+            tie_projs += [True] * len(cutoffs)
 
 ###############################################################################
 # Build the model

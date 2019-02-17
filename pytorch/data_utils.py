@@ -1,11 +1,12 @@
-import os, sys
+import os
 import glob
+import json
 
-from collections import Counter, OrderedDict
 import numpy as np
 import torch
 
 from utils.vocabulary import Vocab
+
 
 class LMOrderedIterator(object):
     def __init__(self, data, bsz, bptt, device='cpu', ext_len=None):
@@ -178,12 +179,24 @@ class LMMultiFileIterator(LMShuffledIterator):
 class Corpus(object):
     def __init__(self, path, dataset, *args, **kwargs):
         self.dataset = dataset
+        if self.dataset == 'generic_dataset':
+            encode_kwargs = dict(
+                add_eos=kwargs.pop('add_eos', False),
+                add_double_eos=kwargs.pop('add_double_eos', False),
+                ordered=True,
+                verbose=True,
+            )
+        print(self.dataset, 'vocab params', kwargs)
         self.vocab = Vocab(*args, **kwargs)
 
         if self.dataset in ['ptb', 'wt2', 'enwik8', 'text8']:
             self.vocab.count_file(os.path.join(path, 'train.txt'))
             self.vocab.count_file(os.path.join(path, 'valid.txt'))
             self.vocab.count_file(os.path.join(path, 'test.txt'))
+        elif self.dataset == 'generic_dataset' and not self.vocab.vocab_file:
+            self.vocab.count_file(os.path.join(path, "train.txt"))
+            self.vocab.count_file(os.path.join(path, "valid.txt"))
+            self.vocab.count_file(os.path.join(path, "test.txt"))
         elif self.dataset == 'wt103':
             self.vocab.count_file(os.path.join(path, 'train.txt'))
         elif self.dataset == 'lm1b':
@@ -202,6 +215,13 @@ class Corpus(object):
                 os.path.join(path, 'valid.txt'), ordered=True)
             self.test  = self.vocab.encode_file(
                 os.path.join(path, 'test.txt'), ordered=True)
+        elif self.dataset == 'generic_dataset':
+            self.train = self.vocab.encode_file(
+                os.path.join(path, "train.txt"), **encode_kwargs)
+            self.valid = self.vocab.encode_file(
+                os.path.join(path, "valid.txt"), **encode_kwargs)
+            self.test  = self.vocab.encode_file(
+                os.path.join(path, "test.txt"), **encode_kwargs)
         elif self.dataset in ['enwik8', 'text8']:
             self.train = self.vocab.encode_file(
                 os.path.join(path, 'train.txt'), ordered=True, add_eos=False)
@@ -218,14 +238,14 @@ class Corpus(object):
 
     def get_iterator(self, split, *args, **kwargs):
         if split == 'train':
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8', 'generic_dataset']:
                 data_iter = LMOrderedIterator(self.train, *args, **kwargs)
             elif self.dataset == 'lm1b':
                 kwargs['shuffle'] = True
                 data_iter = LMMultiFileIterator(self.train, self.vocab, *args, **kwargs)
         elif split in ['valid', 'test']:
             data = self.valid if split == 'valid' else self.test
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8', 'generic_dataset']:
                 data_iter = LMOrderedIterator(data, *args, **kwargs)
             elif self.dataset == 'lm1b':
                 data_iter = LMShuffledIterator(data, *args, **kwargs)
@@ -244,6 +264,9 @@ def get_lm_corpus(datadir, dataset):
         if dataset in ['wt103', 'wt2']:
             kwargs['special'] = ['<eos>']
             kwargs['lower_case'] = False
+        elif dataset == 'generic_dataset':
+            with open(os.path.join(datadir, 'vocab-params.json')) as f:
+                kwargs = json.load(f)
         elif dataset == 'ptb':
             kwargs['special'] = ['<eos>']
             kwargs['lower_case'] = True
@@ -265,7 +288,8 @@ if __name__ == '__main__':
     parser.add_argument('--datadir', type=str, default='../data/text8',
                         help='location of the data corpus')
     parser.add_argument('--dataset', type=str, default='text8',
-                        choices=['ptb', 'wt2', 'wt103', 'lm1b', 'enwik8', 'text8'],
+                        choices=['ptb', 'wt2', 'wt103', 'lm1b', 'enwik8', 'text8',
+                                 'generic_dataset'],
                         help='dataset name')
     args = parser.parse_args()
 
