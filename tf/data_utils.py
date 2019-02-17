@@ -5,8 +5,8 @@ from __future__ import print_function
 import math
 import os
 from functools import partial
+import traceback
 
-from collections import Counter, OrderedDict
 import pickle
 import json
 import multiprocessing as mp
@@ -386,9 +386,16 @@ def get_lm_corpus(data_dir, dataset):
 
     corpus = Corpus(data_dir, dataset, **kwargs)
 
+    # TODO do something smarter here, maybe joblib would work better?
     print("Saving dataset...")
-    with open(fn, "wb") as fp:
-      pickle.dump(corpus, fp, protocol=2)
+    try:
+      with open(fn, "wb") as fp:
+        pickle.dump(corpus, fp, protocol=2)
+    except Exception:
+      traceback.print_exc()
+      if os.path.exists(fn):
+        os.unlink(fn)
+      print('Ignored error when saving dataset')
 
     corpus_info = {
       "vocab_size" : len(corpus.vocab),
