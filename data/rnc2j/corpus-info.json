@@ -1,0 +1,1 @@
+{"vocab_size": 500000, "cutoffs": [0, 50000, 100000, 450000], "dataset": "generic_dataset"}
