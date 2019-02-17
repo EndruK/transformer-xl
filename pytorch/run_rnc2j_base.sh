@@ -8,9 +8,9 @@ if [[ $1 == 'train' ]]; then
         --dataset generic_dataset \
         --adaptive \
         --n_layer 8 \
-        --d_model 256 \
+        --d_model 512 \
         --n_head 8 \
-        --d_head 32 \
+        --d_head 64 \
         --d_inner 2048 \
         --dropout 0.1 \
         --dropatt 0.0 \
