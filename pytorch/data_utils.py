@@ -186,6 +186,9 @@ class Corpus(object):
                 ordered=True,
                 verbose=True,
             )
+            if kwargs.get('vocab_file') is not None:
+                kwargs['vocab_file'] = os.path.join(path, kwargs['vocab_file'])
+
         print(self.dataset, 'vocab params', kwargs)
         self.vocab = Vocab(*args, **kwargs)
 
