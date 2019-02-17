@@ -1,5 +1,5 @@
 {
-    "special": ["<eos>"],
+    "special": [],
     "lower_case": false,
     "vocab_file": "vocab-500k.txt",
     "add_eos": false,

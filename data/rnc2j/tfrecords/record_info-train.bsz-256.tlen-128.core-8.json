@@ -1,1 +1,1 @@
-{"filenames": ["train.bsz-256.tlen-128.core-8.tfrecords"], "bin_sizes": [200, 240], "num_batch": 35554}
+{"filenames": ["train.bsz-256.tlen-128.core-8.tfrecords"], "bin_sizes": [200, 240], "num_batch": 17777}
