@@ -57,7 +57,10 @@ te_iter = corpus.get_iterator('test', args.batch_size, args.tgt_len,
 
 # Load the best saved model.
 with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-    model = torch.load(f)
+    state = torch.load(f, map_location='cpu')
+model = MemTransformerLM(**state['model_params'])
+model.load_state_dict(state['state_dict'])
+del state
 model.backward_compatible()
 model = model.to(device)
 

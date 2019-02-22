@@ -181,14 +181,14 @@ class Corpus(object):
         self.dataset = dataset
         self.params = dict(kwargs)
         if self.dataset == 'generic_dataset':
-            encode_kwargs = dict(
-                add_eos=kwargs.pop('add_eos', False),
-                add_double_eos=kwargs.pop('add_double_eos', False),
-                ordered=True,
-                verbose=True,
-            )
             if kwargs.get('vocab_file') is not None:
                 kwargs['vocab_file'] = os.path.join(path, kwargs['vocab_file'])
+        ordered = True
+        if self.dataset in ['ptb', 'wt2', 'wt103']:
+            kwargs.setdefault('add_eos', True)
+        elif self.dataset == 'lm1b':
+            kwargs.setdefault('add_double_eos', True)
+            ordered = False
 
         print(self.dataset, 'vocab params', kwargs)
         self.vocab = Vocab(*args, **kwargs)
@@ -212,33 +212,15 @@ class Corpus(object):
 
         self.vocab.build_vocab()
 
-        if self.dataset in ['ptb', 'wt2', 'wt103']:
-            self.train = self.vocab.encode_file(
-                os.path.join(path, 'train.txt'), ordered=True)
-            self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=True)
-            self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=True)
-        elif self.dataset == 'generic_dataset':
-            self.train = self.vocab.encode_file(
-                os.path.join(path, "train.txt"), **encode_kwargs)
-            self.valid = self.vocab.encode_file(
-                os.path.join(path, "valid.txt"), **encode_kwargs)
-            self.test  = self.vocab.encode_file(
-                os.path.join(path, "test.txt"), **encode_kwargs)
-        elif self.dataset in ['enwik8', 'text8']:
-            self.train = self.vocab.encode_file(
-                os.path.join(path, 'train.txt'), ordered=True, add_eos=False)
-            self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=True, add_eos=False)
-            self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=True, add_eos=False)
-        elif self.dataset == 'lm1b':
+        if self.dataset == 'lm1b':
             self.train = train_paths
-            self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=False, add_double_eos=True)
-            self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=False, add_double_eos=True)
+        else:
+            self.train = self.vocab.encode_file(
+                os.path.join(path, 'train.txt'), ordered=ordered, verbose=True)
+        self.valid = self.vocab.encode_file(
+            os.path.join(path, 'valid.txt'), ordered=ordered, verbose=True)
+        self.test  = self.vocab.encode_file(
+            os.path.join(path, 'test.txt'), ordered=ordered, verbose=True)
 
     def get_iterator(self, split, *args, **kwargs):
         if split == 'train':
@@ -285,6 +267,7 @@ def get_lm_corpus(datadir, dataset):
         torch.save(corpus, fn)
 
     return corpus
+
 
 if __name__ == '__main__':
     import argparse

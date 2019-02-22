@@ -295,11 +295,10 @@ model_params = dict(
     sample_softmax=args.sample_softmax,
 )
 if args.restart:
-    print(f'Restarting trainging from {args.restart_dir}')
+    print(f'Restarting training from {args.restart_dir}')
     with open(os.path.join(args.restart_dir, 'model.pt'), 'rb') as f:
         state = torch.load(f)
     if isinstance(state, MemTransformerLM):  # old format
-        print('Legacy snapshot loaded')
         model = state
     else:
         model_params = state['model_params']
@@ -542,7 +541,6 @@ def train():
             # Save the model if the validation loss is the best we've seen so far.
             if not best_val_loss or val_loss < best_val_loss:
                 if not args.debug:
-                    print('Updating model snapshot')
                     with open(os.path.join(args.work_dir, 'model.pt'), 'wb') as f:
                         torch.save(dict(
                             model_params=model_params,

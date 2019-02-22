@@ -3,37 +3,42 @@ from collections import Counter, OrderedDict
 
 import torch
 
+
 class Vocab(object):
-    def __init__(self, special=[], min_freq=0, max_size=None, lower_case=True,
-                 delimiter=None, vocab_file=None):
+    def __init__(self, special=(), min_freq=0, max_size=None, lower_case=True,
+                 vocab_file=None,
+                 add_eos=False, add_double_eos=False):
         self.counter = Counter()
         self.special = special
         self.min_freq = min_freq
         self.max_size = max_size
         self.lower_case = lower_case
-        self.delimiter = delimiter
         self.vocab_file = vocab_file
+        self.add_eos = add_eos
+        self.add_double_eos = add_double_eos
 
-    def tokenize(self, line, add_eos=False, add_double_eos=False):
+    @classmethod
+    def from_symbols(cls, symbols, **kwargs):
+        vocab = cls(**kwargs)
+        vocab.set_symbols(symbols)
+        return vocab
+
+    def tokenize(self, line):
         line = line.strip()
         # convert to lower case
         if self.lower_case:
             line = line.lower()
 
-        # empty delimiter '' will evaluate False
-        if self.delimiter == '':
-            symbols = line
-        else:
-            symbols = line.split(self.delimiter)
+        symbols = line.split()
 
-        if add_double_eos: # lm1b
+        if self.add_double_eos: # lm1b
             return ['<S>'] + symbols + ['<S>']
-        elif add_eos:
+        elif self.add_eos:
             return symbols + ['<eos>']
         else:
             return symbols
 
-    def count_file(self, path, verbose=False, add_eos=False):
+    def count_file(self, path, verbose=False):
         if verbose: print('counting file {} ...'.format(path))
         assert os.path.exists(path)
 
@@ -41,7 +46,7 @@ class Vocab(object):
             for idx, line in enumerate(f):
                 if verbose and idx > 0 and idx % 500000 == 0:
                     print('    line {}'.format(idx))
-                symbols = self.tokenize(line, add_eos=add_eos)
+                symbols = self.tokenize(line)
                 self.counter.update(symbols)
 
     def count_sents(self, sents, verbose=False):
@@ -55,14 +60,18 @@ class Vocab(object):
             self.counter.update(symbols)
 
     def _build_from_file(self, vocab_file):
-        self.idx2sym = []
-        self.sym2idx = OrderedDict()
-
+        symbols = []
         with open(vocab_file, 'r', encoding='utf-8') as f:
             for line in f:
-                symb = line.strip().split()[0]
-                self.add_symbol(symb)
-        self.unk_idx = self.sym2idx['<UNK>']
+                symbols.append(line.strip().split()[0])
+        self.set_symbols(symbols)
+
+    def set_symbols(self, symbols):
+        self.idx2sym = []
+        self.sym2idx = OrderedDict()
+        for sym in symbols:
+            self.add_symbol(sym)
+        self.unk_idx = self.sym2idx.get('<UNK>')
 
     def build_vocab(self):
         if self.vocab_file:
@@ -85,8 +94,7 @@ class Vocab(object):
             print('final vocab size {} from {} unique tokens'.format(
                 len(self), len(self.counter)))
 
-    def encode_file(self, path, ordered=False, verbose=False, add_eos=True,
-            add_double_eos=False):
+    def encode_file(self, path, ordered=False, verbose=False):
         if verbose: print('encoding file {} ...'.format(path))
         assert os.path.exists(path)
         encoded = []
@@ -94,8 +102,7 @@ class Vocab(object):
             for idx, line in enumerate(f):
                 if verbose and idx > 0 and idx % 500000 == 0:
                     print('    line {}'.format(idx))
-                symbols = self.tokenize(line, add_eos=add_eos,
-                    add_double_eos=add_double_eos)
+                symbols = self.tokenize(line)
                 encoded.append(self.convert_to_tensor(symbols))
 
         if ordered:
@@ -137,7 +144,7 @@ class Vocab(object):
         else:
             # print('encounter unk {}'.format(sym))
             assert '<eos>' not in sym
-            assert hasattr(self, 'unk_idx')
+            assert self.unk_idx is not None
             return self.sym2idx.get(sym, self.unk_idx)
 
     def get_symbols(self, indices):
