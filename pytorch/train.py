@@ -271,23 +271,51 @@ def update_dropatt(m):
     if hasattr(m, 'dropatt'):
         m.dropatt.p = args.dropatt
 
+model_params = dict(
+    n_token=ntokens,
+    n_layer=args.n_layer,
+    n_head=args.n_head,
+    d_model=args.d_model,
+    d_head=args.d_head,
+    d_inner=args.d_inner,
+    dropout=args.dropout,
+    dropatt=args.dropatt,
+    tie_weight=args.tied,
+    d_embed=args.d_embed,
+    div_val=args.div_val,
+    tie_projs=tie_projs,
+    pre_lnorm=args.pre_lnorm,
+    tgt_len=args.tgt_len,
+    ext_len=args.ext_len,
+    mem_len=args.mem_len,
+    cutoffs=cutoffs,
+    same_length=args.same_length,
+    attn_type=args.attn_type,
+    clamp_len=args.clamp_len,
+    sample_softmax=args.sample_softmax,
+)
 if args.restart:
+    print(f'Restarting trainging from {args.restart_dir}')
     with open(os.path.join(args.restart_dir, 'model.pt'), 'rb') as f:
-        model = torch.load(f)
+        state = torch.load(f)
+    if isinstance(state, MemTransformerLM):  # old format
+        print('Legacy snapshot loaded')
+        model = state
+    else:
+        model_params = state['model_params']
+        model = MemTransformerLM(**model_params)
+        model.load_state_dict(state['state_dict'])
+        del state
     if not args.fp16:
         model = model.float()
     model.apply(update_dropout)
     model.apply(update_dropatt)
 else:
-    model = MemTransformerLM(ntokens, args.n_layer, args.n_head, args.d_model,
-        args.d_head, args.d_inner, args.dropout, args.dropatt,
-        tie_weight=args.tied, d_embed=args.d_embed, div_val=args.div_val,
-        tie_projs=tie_projs, pre_lnorm=args.pre_lnorm, tgt_len=args.tgt_len,
-        ext_len=args.ext_len, mem_len=args.mem_len, cutoffs=cutoffs,
-        same_length=args.same_length, attn_type=args.attn_type,
-        clamp_len=args.clamp_len, sample_softmax=args.sample_softmax)
+    model = MemTransformerLM(**model_params)
     model.apply(weights_init)
-    model.word_emb.apply(weights_init) # ensure embedding init is not overridden by out_layer in case of weight sharing
+    # ensure embedding init is not overridden by out_layer
+    # in case of weight sharing
+    model.word_emb.apply(weights_init)
 args.n_all_param = sum([p.nelement() for p in model.parameters()])
 args.n_nonemb_param = sum([p.nelement() for p in model.layers.parameters()])
 
@@ -514,8 +542,14 @@ def train():
             # Save the model if the validation loss is the best we've seen so far.
             if not best_val_loss or val_loss < best_val_loss:
                 if not args.debug:
+                    print('Updating model snapshot')
                     with open(os.path.join(args.work_dir, 'model.pt'), 'wb') as f:
-                        torch.save(model, f)
+                        torch.save(dict(
+                            model_params=model_params,
+                            state_dict=model.state_dict(),
+                            vocab=corpus.vocab.idx2sym,
+                            encode_param=corpus.encode_params,
+                        ), f)
                     with open(os.path.join(args.work_dir, 'optimizer.pt'), 'wb') as f:
                         torch.save(optimizer.state_dict(), f)
                 best_val_loss = val_loss
@@ -549,20 +583,4 @@ try:
             break
 except KeyboardInterrupt:
     logging('-' * 100)
-    logging('Exiting from training early')
-
-# Load the best saved model.
-with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-    model = torch.load(f)
-para_model = model.to(device)
-
-# Run on test data.
-test_loss = evaluate(te_iter)
-logging('=' * 100)
-if args.dataset in ['enwik8', 'text8']:
-    logging('| End of training | test loss {:5.2f} | test bpc {:9.5f}'.format(
-        test_loss, test_loss / math.log(2)))
-else:
-    logging('| End of training | test loss {:5.2f} | test ppl {:9.3f}'.format(
-        test_loss, math.exp(test_loss)))
-logging('=' * 100)
+    logging('Exited from training early')

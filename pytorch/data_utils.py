@@ -180,7 +180,7 @@ class Corpus(object):
     def __init__(self, path, dataset, *args, **kwargs):
         self.dataset = dataset
         if self.dataset == 'generic_dataset':
-            encode_kwargs = dict(
+            self.encode_params = dict(
                 add_eos=kwargs.pop('add_eos', False),
                 add_double_eos=kwargs.pop('add_double_eos', False),
                 ordered=True,
@@ -188,6 +188,8 @@ class Corpus(object):
             )
             if kwargs.get('vocab_file') is not None:
                 kwargs['vocab_file'] = os.path.join(path, kwargs['vocab_file'])
+        else:
+            self.encode_params = None
 
         print(self.dataset, 'vocab params', kwargs)
         self.vocab = Vocab(*args, **kwargs)
@@ -220,11 +222,11 @@ class Corpus(object):
                 os.path.join(path, 'test.txt'), ordered=True)
         elif self.dataset == 'generic_dataset':
             self.train = self.vocab.encode_file(
-                os.path.join(path, "train.txt"), **encode_kwargs)
+                os.path.join(path, "train.txt"), **self.encode_params)
             self.valid = self.vocab.encode_file(
-                os.path.join(path, "valid.txt"), **encode_kwargs)
+                os.path.join(path, "valid.txt"), **self.encode_params)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, "test.txt"), **encode_kwargs)
+                os.path.join(path, "test.txt"), **self.encode_params)
         elif self.dataset in ['enwik8', 'text8']:
             self.train = self.vocab.encode_file(
                 os.path.join(path, 'train.txt'), ordered=True, add_eos=False)
