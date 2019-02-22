@@ -1,10 +1,7 @@
-from collections import defaultdict
-
-import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class AdaptiveLogSoftmax(nn.Module):
     def __init__(self, in_features, n_classes, cutoffs, keep_order=False):

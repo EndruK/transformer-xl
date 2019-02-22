@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-import numpy as np
+
 
 class LogUniformSampler(object):
     def __init__(self, range_max, n_sample):
