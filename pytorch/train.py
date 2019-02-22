@@ -548,7 +548,7 @@ def train():
                             model_params=model_params,
                             state_dict=model.state_dict(),
                             vocab=corpus.vocab.idx2sym,
-                            encode_param=corpus.encode_params,
+                            vocab_params=corpus.params,
                         ), f)
                     with open(os.path.join(args.work_dir, 'optimizer.pt'), 'wb') as f:
                         torch.save(optimizer.state_dict(), f)
