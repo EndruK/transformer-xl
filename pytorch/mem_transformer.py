@@ -737,9 +737,14 @@ class MemTransformerLM(nn.Module):
         # them together.
         if not mems: mems = self.init_mems()
 
-        tgt_len = target.size(0)
         hidden, new_mems = self._forward(data, mems=mems)
 
+        if target is None:
+            assert not self.training
+            logits = self.crit(hidden, target=None)
+            return logits, new_mems
+
+        tgt_len = target.size(0)
         pred_hid = hidden[-tgt_len:]
         if self.sample_softmax > 0 and self.training:
             assert self.tie_weight
@@ -754,6 +759,7 @@ class MemTransformerLM(nn.Module):
             return [loss]
         else:
             return [loss] + new_mems
+
 
 if __name__ == '__main__':
     import argparse

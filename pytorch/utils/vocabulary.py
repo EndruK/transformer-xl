@@ -5,6 +5,8 @@ import torch
 
 
 class Vocab(object):
+    EOS = '<eos>'
+
     def __init__(self, special=(), min_freq=0, max_size=None, lower_case=True,
                  vocab_file=None,
                  add_eos=False, add_double_eos=False):
@@ -34,7 +36,7 @@ class Vocab(object):
         if self.add_double_eos: # lm1b
             return ['<S>'] + symbols + ['<S>']
         elif self.add_eos:
-            return symbols + ['<eos>']
+            return symbols + [self.EOS]
         else:
             return symbols
 
@@ -143,7 +145,7 @@ class Vocab(object):
             return self.sym2idx[sym]
         else:
             # print('encounter unk {}'.format(sym))
-            assert '<eos>' not in sym
+            assert self.EOS not in sym
             assert self.unk_idx is not None
             return self.sym2idx.get(sym, self.unk_idx)
 
@@ -160,7 +162,8 @@ class Vocab(object):
         if exclude is None:
             return ' '.join([self.get_sym(idx) for idx in indices])
         else:
-            return ' '.join([self.get_sym(idx) for idx in indices if idx not in exclude])
+            return ' '.join([self.get_sym(idx) for idx in indices
+                             if idx not in exclude])
 
     def __len__(self):
         return len(self.idx2sym)
