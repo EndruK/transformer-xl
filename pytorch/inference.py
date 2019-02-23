@@ -52,9 +52,11 @@ class ModelWrapper:
         return tokens
 
     def predict_log_probs(self, tokens: List[str]) -> torch.Tensor:
-        """ Return log probabilities TODO
+        """ Return log probabilities for next tokens.
         Shape of returned tensor is len(tokens) x len(self.vocab),
-        where TODO
+        where the first element contains log probabilities for tokens
+        after the first, and last element log probabilities for tokens
+        after the last one.
         """
         if not tokens:
             raise ValueError('tokens must be non-empty')
@@ -62,13 +64,13 @@ class ModelWrapper:
         all_log_probs = []
         with torch.no_grad():
             mems = tuple()
-            batch_size = self.model.tgt_len
-            for idx in range(0, len(all_xs), batch_size):
-                xs = all_xs[idx: idx + batch_size]
+            input_len = self.model.tgt_len
+            for idx in range(0, len(all_xs), input_len):
+                xs = all_xs[idx: idx + input_len]
                 xs = xs.to(device=self.device)
-                target = None
-                log_probs, mems = self.model(xs.unsqueeze(0), target, *mems)
-                log_probs = log_probs.squeeze(0).data.cpu()
+                # batch size dimension is 1
+                log_probs, mems = self.model(xs.unsqueeze(1), None, *mems)
+                log_probs = log_probs.squeeze(1).data.cpu()
                 all_log_probs.append(log_probs)
         return torch.cat(all_log_probs)
 

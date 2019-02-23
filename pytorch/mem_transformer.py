@@ -741,8 +741,8 @@ class MemTransformerLM(nn.Module):
 
         if target is None:
             assert not self.training
-            logits = self.crit(hidden, target=None)
-            return logits, new_mems
+            log_probs = self.crit(hidden, target=None)
+            return log_probs, new_mems
 
         tgt_len = target.size(0)
         pred_hid = hidden[-tgt_len:]
