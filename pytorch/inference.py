@@ -51,7 +51,7 @@ class ModelWrapper:
                 tokens.append(self.vocab.EOS)
         return tokens
 
-    def predict_log_probs(self, tokens: List[str]) -> torch.Tensor:
+    def get_log_probs(self, tokens: List[str]) -> torch.Tensor:
         """ Return log probabilities for next tokens.
         Shape of returned tensor is len(tokens) x len(self.vocab),
         where the first element contains log probabilities for tokens
@@ -68,18 +68,19 @@ class ModelWrapper:
             for idx in range(0, len(all_xs), input_len):
                 xs = all_xs[idx: idx + input_len]
                 xs = xs.to(device=self.device)
-                # batch size dimension is 1
-                log_probs, mems = self.model(xs.unsqueeze(1), None, *mems)
-                log_probs = log_probs.squeeze(1).data.cpu()
+                batch_dim = 1  # batch size dimension is 1
+                xs = xs.unsqueeze(batch_dim)
+                log_probs, mems = self.model(xs, None, *mems)
+                log_probs = log_probs.squeeze(batch_dim).data.cpu()
                 all_log_probs.append(log_probs)
         return torch.cat(all_log_probs)
 
     def next_top_k(
             self, tokens: List[str], top_k: int = 40,
             ) -> List[Tuple[str, float]]:
-        """ Return top k tokens and their log probabilities.
+        """ Return top k next tokens and their log probabilities.
         """
-        log_probs = self.predict_log_probs(tokens)[-1]
+        log_probs = self.get_log_probs(tokens)[-1]
         top_indices = torch.argsort(log_probs)[-top_k:]
         top_log_probs = log_probs[top_indices]
         return [(self.vocab.idx2sym[idx], log_prob.item())
@@ -89,8 +90,7 @@ class ModelWrapper:
     def sample_next(self, tokens: List[str], top_k: int = 40) -> str:
         """ Sample next token from multinomial distribution.
         """
-        tokens = tokens #+ [self.vocab.idx2sym[0]]
-        log_probs = self.predict_log_probs(tokens)[-1]
+        log_probs = self.get_log_probs(tokens)[-1]
         top_indices = torch.argsort(log_probs)[-top_k:]
         top_probs = log_probs[top_indices].double().exp()
         sampled_idx = top_indices[torch.multinomial(top_probs, 1).item()].item()
@@ -104,7 +104,6 @@ class ModelWrapper:
         tokens = self.tokenize(text)
         while True:
             next_token = self.sample_next(tokens, top_k=top_k)
-            # print(tokens, next_token)
             yield (self.sp_processor.DecodePieces([tokens[-1], next_token])
                    [len(self.sp_processor.DecodePieces([tokens[-1]])):])
             tokens.append(next_token)
