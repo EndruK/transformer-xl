@@ -37,7 +37,16 @@ def parse_log(root: Path, name : str = '') -> Dict:
         return result
 
 
-def plot_log(log: Dict, ymin: int = None, ymax: int = None):
+def plot_log(log: Dict,
+             ymin: int = None, ymax: int = None,
+             xmin: int = None, xmax: int = None):
+    xlim_kw = {}
+    if xmin is not None:
+        xlim_kw['left'] = xmin
+    if xmax is not None:
+        xlim_kw['right'] = xmax
+    if xlim_kw:
+        plt.xlim(**xlim_kw)
 
     ylim_kw = {}
     if ymin is not None:
@@ -47,8 +56,12 @@ def plot_log(log: Dict, ymin: int = None, ymax: int = None):
     if ylim_kw:
         plt.ylim(**ylim_kw)
 
-    plt.plot([item['valid ppl'] for item in log['valid']],
-             label=log['name'])
+    params = log['params']
+    tokens_per_step = int(params['batch_size']) * int(params['tgt_len'])
+    values = log['valid']
+    xs = [item['step'] * tokens_per_step for item in values]
+    ys = [item['valid ppl'] for item in values]
+    plt.plot(xs, ys, label=log['name'])
     plt.legend()
 
 
