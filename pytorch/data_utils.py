@@ -4,6 +4,7 @@ import json
 
 import numpy as np
 import torch
+import tqdm
 
 from utils.vocabulary import Vocab
 
@@ -145,8 +146,7 @@ class LMShuffledIterator(object):
 
 class LMMultiFileIterator(LMShuffledIterator):
     def __init__(self, paths, vocab, bsz, bptt, device='cpu', ext_len=None,
-        shuffle=False):
-
+                 shuffle=False, shuffle_sent=None):
         self.paths = paths
         self.vocab = vocab
 
@@ -156,10 +156,11 @@ class LMMultiFileIterator(LMShuffledIterator):
 
         self.device = device
         self.shuffle = shuffle
+        self.shuffle_sent = shuffle if shuffle_sent is None else shuffle_sent
 
     def get_sent_stream(self, path):
-        sents = self.vocab.encode_file(path, add_double_eos=True)
-        if self.shuffle:
+        sents = self.vocab.encode_file(path)
+        if self.shuffle_sent:
             np.random.shuffle(sents)
         sent_stream = iter(sents)
 
@@ -192,15 +193,24 @@ class Corpus(object):
 
         print(self.dataset, 'vocab params', kwargs)
         self.vocab = Vocab(*args, **kwargs)
+        train_paths = None
 
         if self.dataset in ['ptb', 'wt2', 'enwik8', 'text8']:
             self.vocab.count_file(os.path.join(path, 'train.txt'))
             self.vocab.count_file(os.path.join(path, 'valid.txt'))
             self.vocab.count_file(os.path.join(path, 'test.txt'))
+
         elif self.dataset == 'generic_dataset' and not self.vocab.vocab_file:
-            self.vocab.count_file(os.path.join(path, "train.txt"))
-            self.vocab.count_file(os.path.join(path, "valid.txt"))
-            self.vocab.count_file(os.path.join(path, "test.txt"))
+            train_path = os.path.join(path, 'train.txt')
+            if os.path.exists(train_path):
+                self.vocab.count_file(train_path, verbose=True)
+            else:
+                train_paths = glob.glob(os.path.join(path, '**', 'train-*.txt'))
+                for train_path in tqdm.tqdm(train_paths, desc='counting train'):
+                    self.vocab.count_file(train_path)
+            self.vocab.count_file(os.path.join(path, 'valid.txt'), verbose=True)
+            self.vocab.count_file(os.path.join(path, 'test.txt'), verbose=True)
+
         elif self.dataset == 'wt103':
             self.vocab.count_file(os.path.join(path, 'train.txt'))
         elif self.dataset == 'lm1b':
@@ -208,34 +218,49 @@ class Corpus(object):
                 path, '1-billion-word-language-modeling-benchmark-r13output',
                 'training-monolingual.tokenized.shuffled', 'news.en-*')
             train_paths = glob.glob(train_path_pattern)
-            # the vocab will load from file when build_vocab() is called
+            # the vocab will load from file when build_vocab() is called,
+            # because it has a vocab file set
+            assert self.vocab.vocab_file
 
         self.vocab.build_vocab()
 
-        if self.dataset == 'lm1b':
+        if train_paths is not None:
             self.train = train_paths
         else:
             self.train = self.vocab.encode_file(
                 os.path.join(path, 'train.txt'), ordered=ordered, verbose=True)
         self.valid = self.vocab.encode_file(
             os.path.join(path, 'valid.txt'), ordered=ordered, verbose=True)
-        self.test  = self.vocab.encode_file(
+        self.test = self.vocab.encode_file(
             os.path.join(path, 'test.txt'), ordered=ordered, verbose=True)
 
     def get_iterator(self, split, *args, **kwargs):
         if split == 'train':
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8', 'generic_dataset']:
+            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
                 data_iter = LMOrderedIterator(self.train, *args, **kwargs)
             elif self.dataset == 'lm1b':
                 kwargs['shuffle'] = True
-                data_iter = LMMultiFileIterator(self.train, self.vocab, *args, **kwargs)
+                data_iter = LMMultiFileIterator(
+                    self.train, self.vocab, *args, **kwargs)
+            elif self.dataset == 'generic_dataset':
+                if isinstance(self.train, list):
+                    kwargs.update({
+                        'shuffle': True,
+                        'shuffle_sent': False,
+                    })
+                    data_iter = LMMultiFileIterator(
+                        self.train, self.vocab, *args, **kwargs)
+                else:
+                    data_iter = LMOrderedIterator(self.train, *args, **kwargs)
         elif split in ['valid', 'test']:
             data = self.valid if split == 'valid' else self.test
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8', 'generic_dataset']:
+            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8',
+                                'generic_dataset']:
                 data_iter = LMOrderedIterator(data, *args, **kwargs)
             elif self.dataset == 'lm1b':
                 data_iter = LMShuffledIterator(data, *args, **kwargs)
 
+        print(f'Using data_iter {data_iter} for {split} split')
         return data_iter
 
 

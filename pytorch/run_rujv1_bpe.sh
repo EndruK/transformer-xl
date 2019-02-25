@@ -1,12 +1,13 @@
 #!/bin/bash
 
+set -e
+
 if [[ $1 == 'train' ]]; then
     echo 'Run training...'
     python train.py \
         --cuda \
-        --data ../data/rujv1_bpe/ \
+        --data ../data/rujv1f_bpe/ \
         --dataset generic_dataset \
-        --adaptive \
         --n_layer 12 \
         --d_model 512 \
         --n_head 8 \
