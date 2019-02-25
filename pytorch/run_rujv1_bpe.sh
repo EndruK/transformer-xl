@@ -7,7 +7,7 @@ if [[ $1 == 'train' ]]; then
         --data ../data/rujv1_bpe/ \
         --dataset generic_dataset \
         --adaptive \
-        --n_layer 8 \
+        --n_layer 12 \
         --d_model 512 \
         --n_head 8 \
         --d_head 64 \
@@ -18,8 +18,8 @@ if [[ $1 == 'train' ]]; then
         --lr 0.00025 \
         --warmup_step 0 \
         --max_step 160000 \
-        --tgt_len 256 \
-        --mem_len 256 \
+        --tgt_len 128 \
+        --mem_len 128 \
         --eval_tgt_len 128 \
         --batch_size 32 \
         --multi_gpu \
