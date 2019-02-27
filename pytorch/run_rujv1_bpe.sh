@@ -6,7 +6,7 @@ if [[ $1 == 'train' ]]; then
     echo 'Run training...'
     python train.py \
         --cuda \
-        --data ../data/rujv1f_bpe/ \
+        --data ../data/rujv1_bpe/ \
         --dataset generic_dataset \
         --n_layer 12 \
         --d_model 512 \
@@ -18,7 +18,7 @@ if [[ $1 == 'train' ]]; then
         --optim adam \
         --lr 0.00025 \
         --warmup_step 0 \
-        --max_step 160000 \
+        --max_step 480000 \
         --tgt_len 128 \
         --mem_len 128 \
         --eval_tgt_len 128 \
