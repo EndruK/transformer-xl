@@ -70,11 +70,10 @@ def print_differing_params(logs: List[Dict]):
     log_params = [log['params'] for log in logs]
     all_keys = {k for params in log_params for k in params}
     values = {k: log_params[0].get(k) for k in all_keys}
-    equal_keys = {k for params in log_params for k in all_keys
+    equal_keys = {k for k in all_keys
                   if all(p.get(k) == values[k] for p in log_params)}
-    print_keys = sorted(
-        all_keys - equal_keys -
-        {'work_dir', 'restart_dir', 'eval_interval', 'max_step'})
+    print_keys = sorted(all_keys - equal_keys -
+                        {'work_dir', 'restart_dir', 'eval_interval'})
     headers = ['log'] + print_keys
     table = [[log['name']] + [log['params'].get(k) for k in print_keys]
              for log in logs]
