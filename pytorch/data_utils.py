@@ -276,8 +276,10 @@ def get_lm_corpus(datadir, dataset):
             kwargs['special'] = ['<eos>']
             kwargs['lower_case'] = False
         elif dataset == 'generic_dataset':
-            with open(os.path.join(datadir, 'vocab-params.json')) as f:
-                kwargs = json.load(f)
+            #with open(os.path.join(datadir, 'vocab-params.json')) as f:
+            #    kwargs = json.load(f)
+            kwargs['lower_case'] = False
+            kwargs['special'] = ["<UNK>"]
         elif dataset == 'ptb':
             kwargs['special'] = ['<eos>']
             kwargs['lower_case'] = True

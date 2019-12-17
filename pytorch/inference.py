@@ -33,22 +33,31 @@ class ModelWrapper:
         vocab = Vocab.from_symbols(
             state['vocab'],
             lower_case=vocab_params['lower_case'],
-            add_eos=vocab_params['add_eos'],
-            add_double_eos=vocab_params['add_double_eos'],
+            #add_eos=vocab_params['add_eos'],
+            #add_double_eos=vocab_params['add_double_eos'],
         )
         sp_processor = spm.SentencePieceProcessor()
-        sp_processor.Load(str(spm_path))
+        #sp_processor.Load(str(spm_path))
         return cls(model, vocab, sp_processor, device)
 
     def tokenize(self, text: str) -> List[str]:
+        #tokens = self.vocab.tokenize(text)
         tokens = []
-        lines = text.split('\n')
+        lines = text.split("\n")
         for i, line in enumerate(lines):
             line = line.strip()
-            tokens.extend(self.sp_processor.encode_as_pieces(line))
-            assert not self.vocab.add_double_eos
-            if self.vocab.add_eos and i != len(lines) - 1:
-                tokens.append(self.vocab.EOS)
+            line_tokens = self.vocab.tokenize(line)
+            tokens.extend(line_tokens)
+
+        # tokens = []
+        # lines = text.split('\n')
+        # for i, line in enumerate(lines):
+        #     line = line.strip()
+        #     foo = self.sp_processor.encode_as_pieces(line)
+        #     tokens.extend(foo)
+        #     assert not self.vocab.add_double_eos
+        #     if self.vocab.add_eos and i != len(lines) - 1:
+        #         tokens.append(self.vocab.EOS)
         return tokens
 
     def get_log_probs(self, tokens: List[str]) -> torch.Tensor:
