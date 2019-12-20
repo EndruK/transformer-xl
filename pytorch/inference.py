@@ -84,18 +84,6 @@ class ModelWrapper:
                 all_log_probs.append(log_probs)
         return torch.cat(all_log_probs)
 
-    def get_occurred_log_probs(
-            self, tokens: List[str]) -> List[Tuple[str, float]]:
-        """ Same as get_log_probs, but return a list of len(tokens) - 1,
-        where log probs correspond to actually occurred tokens.
-        """
-        log_probs = self.get_log_probs(tokens)
-        occured_log_probs = []
-        for idx, token in enumerate(tokens[1:]):
-            token_idx = self.vocab.sym2idx[token]
-            occured_log_probs.append((token, float(log_probs[idx, token_idx])))
-        return occured_log_probs
-
     def next_top_k(
             self, tokens: List[str], top_k: int = 40,
             ) -> List[Tuple[str, float]]:
@@ -109,7 +97,7 @@ class ModelWrapper:
                 reversed(list(zip(top_indices, top_log_probs)))]
 
     def sample_next(self, tokens: List[str], top_k: int = 40) -> str:
-        """ Sample next token from a multinomial distribution.
+        """ Sample next token from multinomial distribution.
         """
         log_probs = self.get_log_probs(tokens)[-1]
         top_indices = torch.argsort(log_probs)[-top_k:]
