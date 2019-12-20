@@ -11,14 +11,17 @@ from utils.vocabulary import Vocab
 class ModelWrapper:
     def __init__(self, model: MemTransformerLM,
                  vocab: Vocab,
-                 device: str):
+                 device: str,
+                 batch_size: int):
         self.vocab = vocab
         self.device = device
+        self.batch_size = batch_size
         self.model = model.to(device=self.device)
         self.model.eval()
 
     @classmethod
     def load(cls, model_path: Path,
+             batch_size: int,
              device: str = None) -> 'ModelWrapper':
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -33,7 +36,7 @@ class ModelWrapper:
             #add_eos=vocab_params['add_eos'],
             #add_double_eos=vocab_params['add_double_eos'],
         )
-        return cls(model, vocab, device)
+        return cls(model, vocab, device, batch_size)
 
     def tokenize(self, text: str) -> List[str]:
         #tokens = self.vocab.tokenize(text)
