@@ -2,15 +2,18 @@ from inference import ModelWrapper
 from pathlib import Path
 from typing import Tuple, List
 import torch
-import click
 
 
 class Generate:
     def __init__(self, model_path: str, generation_length: int, sample_size: int):
         self.model_path = model_path
+<<<<<<< HEAD
         self.sample_size = sample_size
         self.mw = ModelWrapper.load(Path(self.model_path), batch_size=sample_size)
         self.length = generation_length
+=======
+        self.mw = ModelWrapper.load(Path(self.model_path), None)
+>>>>>>> parent of 706f6fa... removed sentencepiece from inference
 
     def sample_next(self, tokens: List[str], top_k: int = 40) -> Tuple[str, float]:
         log_probs = self.mw.get_log_probs(tokens)[-1]
@@ -30,11 +33,14 @@ class Generate:
         return result
 
 
-@click.command()
-@click.option("--model_path", type=str, required=True, help="path to a trained transformer-xl model")
-def main(model_path):
+def main():
+    path = "/home/andre/Documents/work/trained_models/transformer-xl-lopuhin/java-generic_dataset/20191216-160714/model.pt"
     string = "public static void main(String[] args) {\nSystem.out.println(\"Hello World!\");\n}"
+<<<<<<< HEAD
     gen = Generate(model_path=model_path, generation_length=100)
+=======
+    gen = Generate(model_path=path)
+>>>>>>> parent of 706f6fa... removed sentencepiece from inference
     result = gen.generate(context=string)
     print(result)
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
+import sentencepiece as spm
 import torch
 import torch.cuda
 
@@ -14,6 +15,7 @@ class ModelWrapper:
                  device: str,
                  batch_size: int):
         self.vocab = vocab
+        self.sp_processor = sp_processor
         self.device = device
         self.batch_size = batch_size
         self.model = model.to(device=self.device)
@@ -115,14 +117,14 @@ class ModelWrapper:
         sampled_idx = top_indices[torch.multinomial(top_probs, 1).item()].item()
         return self.vocab.idx2sym[sampled_idx]
 
-    # def sample_text_iter(self, text: str, top_k: int = 40):
-    #     """ An iterator yielding pieces of generated text, resulting text
-    #     can be obtained by joining all of them with an empty string.
-    #     """
-    #     # TODO for longer texts we want to use memory and don't feed all tokens
-    #     tokens = self.tokenize(text)
-    #     while True:
-    #         next_token = self.sample_next(tokens, top_k=top_k)
-    #         yield (self.sp_processor.DecodePieces([tokens[-1], next_token])
-    #                [len(self.sp_processor.DecodePieces([tokens[-1]])):])
-    #         tokens.append(next_token)
+    def sample_text_iter(self, text: str, top_k: int = 40):
+        """ An iterator yielding pieces of generated text, resulting text
+        can be obtained by joining all of them with an empty string.
+        """
+        # TODO for longer texts we want to use memory and don't feed all tokens
+        tokens = self.tokenize(text)
+        while True:
+            next_token = self.sample_next(tokens, top_k=top_k)
+            yield (self.sp_processor.DecodePieces([tokens[-1], next_token])
+                   [len(self.sp_processor.DecodePieces([tokens[-1]])):])
+            tokens.append(next_token)
