@@ -96,6 +96,30 @@ class Vocab(object):
             print('final vocab size {} from {} unique tokens'.format(
                 len(self), len(self.counter)))
 
+    def encode_file_new(self, path, ordered=False, verbose=False):
+        """
+        Encodes es complete file without ignoring line breaks
+        Args:
+            path:
+            ordered:
+            verbose:
+
+        Returns:
+
+        """
+        if verbose: print('encoding file {} ...'.format(path))
+        assert os.path.exists(path)
+        encoded = []
+        with open(path, 'r', encoding='utf-8') as f:
+            text = f.read()
+            if verbose:
+                lines = text.split("\n")
+                for idx, line in enumerate(lines):
+                    print('    line {}'.format(idx))
+            symbols = self.tokenize(text)
+            encoded.append(self.convert_to_tensor(symbols))
+        return encoded
+
     def encode_file(self, path, ordered=False, verbose=False):
         if verbose: print('encoding file {} ...'.format(path))
         assert os.path.exists(path)
