@@ -143,8 +143,14 @@ parser.add_argument('--static-loss-scale', type=float, default=1,
 parser.add_argument('--dynamic-loss-scale', action='store_true',
                     help='Use dynamic loss scaling.  If supplied, this argument'
                     ' supersedes --static-loss-scale.')
+parser.add_argument('--cuda_gpu_ids', nargs='+', help="set list of GPU ids (default=0)", default=['0'])
 args = parser.parse_args()
 args.tied = not args.not_tied
+
+gpu_id_list = args.cuda_gpu_ids
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(i) for i in gpu_id_list])
+print("using %s gpus" % (",".join([str(i) for i in gpu_id_list])))
 
 if args.d_embed < 0:
     args.d_embed = args.d_model
