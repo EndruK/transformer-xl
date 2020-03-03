@@ -1,21 +1,21 @@
 python train.py \
     --cuda \
-    --data /mnt/media/Corpora/extern/Github_Java_Corpus/split/training \
+    --data /mnt/media/Corpora/extern/Github_Java_Corpus/split/01_transfo_xl_joined_files \
     --dataset generic_dataset \
-    --n_layer 12 \
-    --d_model 256 \
+    --n_layer 6 \
+    --d_model 128 \
     --n_head 8 \
     --d_head 64 \
-    --d_inner 1024 \
+    --d_inner 128 \
     --dropout 0.1 \
     --dropatt 0.0 \
     --optim adam \
     --lr 0.00025 \
     --warmup_step 0 \
     --max_step 400000 \
-    --tgt_len 256 \
-    --mem_len 256 \
-    --eval_tgt_len 128 \
-    --batch_size 3 \
+    --tgt_len 64 \
+    --mem_len 64 \
+    --eval_tgt_len 64 \
+    --batch_size 1 \
     --gpu0_bsz 2 \
-    --work_dir /mnt/media/trained_models/transformer-xl-complete-java
+    --work_dir /mnt/media/trained_models/transformerXL-01

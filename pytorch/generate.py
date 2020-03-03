@@ -34,7 +34,7 @@ class Generate:
 @click.option("--model_path", type=str, required=True, help="path to a trained transformer-xl model")
 def main(model_path):
     string = "public static void main(String[] args) {\nSystem.out.println(\"Hello World!\");\n}"
-    gen = Generate(model_path=model_path, generation_length=100)
+    gen = Generate(model_path=model_path, generation_length=100, sample_size=5)
     result = gen.generate(context=string)
     print(result)
 
